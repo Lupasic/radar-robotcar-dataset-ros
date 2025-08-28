@@ -15,10 +15,13 @@
 #include <QCloseEvent>
 #include <QCoreApplication>
 #include <QDebug>
+#include <QDialogButtonBox>
 #include <QFileDialog>
 #include <QMainWindow>
 #include <QMessageBox>
 #include <QMutex>
+#include <QProcess>
+#include <QPushButton>
 #include <QSettings>
 #include <QThread>
 // mine
@@ -83,5 +86,17 @@ class RobotCarPlayer : public QMainWindow {
   QString Qdir_sdk, Qdir_data, Qdir_save;
   // checkboxs
   QButtonGroup *pcheckGroup;
+  // bag recording
+  QProcess *bag_record_process;
+  bool is_recording;
+  
+  // Helper methods
+  QStringList getActiveTopics() const;
+  void startBagRecording(const QStringList& topics);
+  void stopBagRecording();
+
+ private slots:
+  void onBagRecordingFinished(int exitCode, QProcess::ExitStatus exitStatus);
+  void onBagRecordingError(QProcess::ProcessError error);
 };
 #endif  // ROBOTCARPLAYER_H

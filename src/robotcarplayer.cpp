@@ -57,9 +57,20 @@ RobotCarPlayer::RobotCarPlayer(QWidget *parent)
           SLOT(map_slot(sensor_type)));
   connect(this, SIGNAL(sensor_cancel(sensor_type)), rcl_thread,
           SLOT(remap_slot(sensor_type)));
+  
+  // Initialize bag recording
+  bag_record_process = nullptr;
+  is_recording = false;
 }
 
 RobotCarPlayer::~RobotCarPlayer() {
+  // Stop bag recording if active
+  if (is_recording && bag_record_process) {
+    bag_record_process->kill();
+    bag_record_process->waitForFinished(3000);
+    delete bag_record_process;
+  }
+  
   rcl_thread->quit();
   if (!rcl_thread->wait(10)) {
     rcl_thread->terminate();
@@ -192,12 +203,172 @@ void RobotCarPlayer::on_buttonAbort_clicked() {
   rcl_thread->quit();
   ui->textStatus->setText("Aborting playback.");
   ui->SliderPlayer->setValue(0);
+  
+  // Stop bag recording if active
+  if (is_recording) {
+    stopBagRecording();
+  }
 }
 
 void RobotCarPlayer::on_buttonSave_clicked() {
   Qdir_save = QFileDialog::getSaveFileName(this, tr("Save to rosbag2"));
+  if (Qdir_save.isEmpty()) {
+    return; // User cancelled
+  }
+  
   ui->textStatus->setText("Your rosbag2 will be saved in\n" + Qdir_save);
   rcl_thread->bag_name = Qdir_save.toStdString();
+  
+  // Get active topics
+  QStringList topics = getActiveTopics();
+  if (topics.isEmpty()) {
+    ui->textStatus->append("No sensors selected! Please check at least one sensor.");
+    return;
+  }
+  
+  // Start bag recording
+  if (!is_recording) {
+    startBagRecording(topics);
+  }
+}
+
+QStringList RobotCarPlayer::getActiveTopics() const {
+  QStringList topics;
+  
+  // Add topics based on RCLThread checked flags (more reliable than UI state)
+  if (rcl_thread->stereo_checked) {
+    topics << "/robotcar/stereo/left" << "/robotcar/stereo/centre" << "/robotcar/stereo/right";
+  }
+  if (rcl_thread->mono_checked) {
+    topics << "/robotcar/mono/left" << "/robotcar/mono/right" << "/robotcar/mono/rear";
+  }
+  if (rcl_thread->radar_checked) {
+    topics << "/robotcar/radar/polar" << "/robotcar/radar/cart";
+  }
+  if (rcl_thread->lidar3d_checked) {
+    topics << "/robotcar/lidar/left" << "/robotcar/lidar/right";
+  }
+  if (rcl_thread->lidar2d_checked) {
+    topics << "/robotcar/lidar/front" << "/robotcar/lidar/rear";
+  }
+  if (rcl_thread->lidarold_checked) {
+    topics << "/robotcar/lidar/front3d";
+  }
+  if (rcl_thread->gps_checked) {
+    topics << "/robotcar/ins/gps" << "/robotcar/ins/odom";
+  }
+  
+  // Always include TF topics
+  topics << "/tf" << "/tf_static";
+  
+  return topics;
+}
+
+void RobotCarPlayer::startBagRecording(const QStringList& topics) {
+  if (is_recording) {
+    ui->textStatus->append("Recording is already in progress!");
+    return;
+  }
+  
+  // Create process if not exists
+  if (!bag_record_process) {
+    bag_record_process = new QProcess(this);
+    connect(bag_record_process, QOverload<int, QProcess::ExitStatus>::of(&QProcess::finished),
+            this, &RobotCarPlayer::onBagRecordingFinished);
+    connect(bag_record_process, &QProcess::errorOccurred,
+            this, &RobotCarPlayer::onBagRecordingError);
+  }
+  
+  // Build the command
+  QString program = "ros2";
+  QStringList arguments;
+  arguments << "bag" << "record" << "-o" << Qdir_save;
+  arguments.append(topics);
+  
+  // Start the process
+  bag_record_process->start(program, arguments);
+  
+  if (bag_record_process->waitForStarted(5000)) {
+    is_recording = true;
+    // Get the save button from the button box and modify its text
+    QPushButton* saveButton = ui->buttonSave->button(QDialogButtonBox::Save);
+    if (saveButton) {
+      saveButton->setText("Recording...");
+      saveButton->setEnabled(false);
+    }
+    ui->textStatus->append("Bag recording started with topics:");
+    ui->textStatus->append(topics.join(", "));
+    qDebug() << "Bag recording started with command:" << program << arguments.join(" ");
+  } else {
+    ui->textStatus->append("Failed to start bag recording!");
+    qDebug() << "Failed to start process:" << bag_record_process->errorString();
+  }
+}
+
+void RobotCarPlayer::stopBagRecording() {
+  if (is_recording && bag_record_process) {
+    ui->textStatus->append("Stopping bag recording...");
+    bag_record_process->terminate();
+    
+    if (!bag_record_process->waitForFinished(5000)) {
+      bag_record_process->kill();
+      bag_record_process->waitForFinished(3000);
+    }
+    
+    is_recording = false;
+    QPushButton* saveButton = ui->buttonSave->button(QDialogButtonBox::Save);
+    if (saveButton) {
+      saveButton->setText("Save");
+      saveButton->setEnabled(true);
+    }
+    ui->textStatus->append("Bag recording stopped.");
+  }
+}
+
+void RobotCarPlayer::onBagRecordingFinished(int exitCode, QProcess::ExitStatus exitStatus) {
+  qDebug() << "Bag recording finished with exit code:" << exitCode << "status:" << exitStatus;
+  
+  is_recording = false;
+  QPushButton* saveButton = ui->buttonSave->button(QDialogButtonBox::Save);
+  if (saveButton) {
+    saveButton->setText("Save");
+    saveButton->setEnabled(true);
+  }
+  
+  if (exitStatus == QProcess::NormalExit && exitCode == 0) {
+    ui->textStatus->append("Bag recording completed successfully!");
+  } else {
+    ui->textStatus->append("Bag recording finished with errors. Exit code: " + QString::number(exitCode));
+  }
+}
+
+void RobotCarPlayer::onBagRecordingError(QProcess::ProcessError error) {
+  qDebug() << "Bag recording error:" << error;
+  
+  is_recording = false;
+  QPushButton* saveButton = ui->buttonSave->button(QDialogButtonBox::Save);
+  if (saveButton) {
+    saveButton->setText("Save");
+    saveButton->setEnabled(true);
+  }
+  
+  QString errorMsg;
+  switch (error) {
+    case QProcess::FailedToStart:
+      errorMsg = "Failed to start ros2 bag record. Make sure ROS2 is properly installed.";
+      break;
+    case QProcess::Crashed:
+      errorMsg = "Bag recording process crashed.";
+      break;
+    case QProcess::Timedout:
+      errorMsg = "Bag recording process timed out.";
+      break;
+    default:
+      errorMsg = "Unknown error occurred during bag recording.";
+      break;
+  }
+  
+  ui->textStatus->append("Error: " + errorMsg);
 }
 
 //----------------------------checkBoxs------------------------------//

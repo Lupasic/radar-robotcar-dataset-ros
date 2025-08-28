@@ -99,28 +99,28 @@
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../src/robotcarplayer.cpp" line="77"/>
+        <location filename="../src/robotcarplayer.cpp" line="88"/>
         <source>Are you sure to close the player (T_T)?
 If you click the yes, the paths you set will be saved (^_^).</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../src/robotcarplayer.cpp" line="87"/>
+        <location filename="../src/robotcarplayer.cpp" line="98"/>
         <source>RobotCarPlayer</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../src/robotcarplayer.cpp" line="100"/>
+        <location filename="../src/robotcarplayer.cpp" line="111"/>
         <source>Please open the directory named robotcar-dataset-sdk.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../src/robotcarplayer.cpp" line="131"/>
+        <location filename="../src/robotcarplayer.cpp" line="142"/>
         <source>Please open the directory containing the dataset.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../src/robotcarplayer.cpp" line="198"/>
+        <location filename="../src/robotcarplayer.cpp" line="214"/>
         <source>Save to rosbag2</source>
         <translation type="unfinished"></translation>
     </message>
