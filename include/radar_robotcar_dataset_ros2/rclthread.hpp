@@ -11,6 +11,10 @@
 #ifndef RCL_THREAD_HPP
 #define RCL_THREAD_HPP
 
+// ROS2
+#include <rclcpp/rclcpp.hpp>
+#include <rclcpp/executors/multi_threaded_executor.hpp>
+
 // QT
 #include <QDebug>
 #include <QMutex>

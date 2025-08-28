@@ -12,8 +12,11 @@
 #define LIDARS_HPP
 
 // PCL (mine version: 1.10)
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wcpp"
 #include <pcl/point_cloud.h>
 #include <pcl_conversions/pcl_conversions.h>
+#pragma GCC diagnostic pop
 // ROS2
 #include <sensor_msgs/msg/laser_scan.hpp>
 #include <sensor_msgs/msg/point_cloud2.hpp>

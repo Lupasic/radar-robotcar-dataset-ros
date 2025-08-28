@@ -11,6 +11,9 @@
 #ifndef CAMERAS_HPP
 #define CAMERAS_HPP
 
+// Eigen - include before OpenCV to avoid macro conflicts
+#include <Eigen/Dense>
+
 // opencv
 #include <opencv2/dnn.hpp>
 #include <opencv2/highgui.hpp>

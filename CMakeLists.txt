@@ -19,6 +19,10 @@ endif()
 
 if(CMAKE_COMPILER_IS_GNUCXX OR CMAKE_CXX_COMPILER_ID MATCHES "Clang")
   add_compile_options(-Wall -Wextra -Wpedantic)
+  # Disable Eigen vectorization to avoid macro conflicts
+  add_compile_definitions(EIGEN_DONT_VECTORIZE)
+  # Suppress warnings from external libraries (PCL, etc.)
+  add_compile_options(-Wno-cpp)
 endif()
 
 # find dependencies
@@ -48,10 +52,15 @@ find_package(std_srvs REQUIRED)
 find_package(tf2_ros REQUIRED)
 find_package(cv_bridge REQUIRED)
 find_package(PCL REQUIRED)
+# Suppress PCL warnings by setting PCL components explicitly
+set(PCL_COMMON_LIBRARIES pcl_common)
+set(PCL_IO_LIBRARIES "")
 find_package(Eigen3 REQUIRED)
 find_package(Qt5 COMPONENTS Widgets LinguistTools REQUIRED)
 find_package(Boost REQUIRED COMPONENTS thread)
-find_package(OpenCV 4.6.0 REQUIRED) #ros foxy default 4.2.0
+find_package(OpenCV 4.5.4 REQUIRED) #ros foxy default 4.2.0
+find_package(rosbag2_cpp REQUIRED)
+find_package(pcl_conversions REQUIRED)
 
 set(dependencies
   "rclcpp"
@@ -64,6 +73,8 @@ set(dependencies
   "std_srvs"
   "tf2_ros"
   "cv_bridge"
+  "rosbag2_cpp"
+  "pcl_conversions"
   Boost
 )
 

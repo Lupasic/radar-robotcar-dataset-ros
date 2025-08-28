@@ -48,6 +48,9 @@ extern "C" {
 }
 #endif
 
+// Eigen - include first to avoid macro conflicts
+#include <Eigen/Dense>
+
 // std
 #include <string.h>
 
@@ -74,8 +77,6 @@ extern "C" {
 #include <rosbag2_cpp/writer.hpp>
 #include <rosbag2_cpp/writers/sequential_writer.hpp>
 #include <rosbag2_storage/serialized_bag_message.hpp>
-// Eigen
-#include <Eigen/Dense>
 // QT
 #include <QDebug>
 #include <QMutex>

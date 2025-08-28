@@ -9,11 +9,12 @@
  ===================================================================*/
 
 #include "radar_robotcar_dataset_ros2/rclthread.hpp"
+#include <rclcpp/rclcpp.hpp>
 
 RCLThread::RCLThread(QObject* parent, QMutex* mutex_ptr)
     : QThread(parent),
       Qmutex_ptr(mutex_ptr),
-      executor(rclcpp::executor::ExecutorArgs(), 6, true) {
+      executor() {
   qDebug() << "rclcpp thread start";
 }
 
